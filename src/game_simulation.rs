@@ -19,12 +19,11 @@ impl<A: Agent> AgentProcessPlaceHolder<A> {
     }
 }
 
-fn setup_agent_processes<A: Agent + Copy>(agents: &IndexMap<PlayerID, A>) -> HashMap<PlayerID, AgentProcessPlaceHolder<A>> {
+fn setup_agent_processes<A: Agent + Copy>(agents: &IndexMap<<A::Game as GameLogic>::PID, A>) -> HashMap<<A::Game as GameLogic>::PID, AgentProcessPlaceHolder<A>> {
     agents.iter().map(|(&p, &a)| (p, AgentProcessPlaceHolder {my_agent: a})).collect()
-
 }
 
-pub fn simulate_game<G, A>(game: &G, agents: IndexMap<PlayerID, A>) -> GameResult
+pub fn simulate_game<G, A>(game: &G, agents: IndexMap<G::PID, A>) -> GameResult<G::PID>
 where 
     G: GameLogic,
     A: Agent<Game = G> + Copy,
@@ -44,11 +43,9 @@ where
 
         match game.make_move(current_state, current_player, player_move.expect("didn't get move from player")) {
             MoveResult::GameOver(result) => {
-                println!("returning result");
                 return result;
             },
             MoveResult::NextState(state, player, ) => {
-                println!("going to next state");
                 (current_state, current_player) = (state, player);
             }
         }

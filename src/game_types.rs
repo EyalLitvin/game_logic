@@ -1,27 +1,30 @@
 use std::{collections::HashMap, hash::Hash};
 
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
-pub struct PlayerID(pub u32);
 
-pub type GameResult = HashMap<PlayerID, i32>;
+pub trait PlayerID: Hash + Eq + Copy {
 
-pub enum MoveResult<GameState> {
-    NextState(GameState, PlayerID),
-    GameOver(GameResult),
+}
+
+pub type GameResult<PID: PlayerID> = HashMap<PID, i32>;
+
+pub enum MoveResult<GameState, PID: PlayerID> {
+    NextState(GameState, PID),
+    GameOver(GameResult<PID>),
 }
 
 
 pub trait GameLogic {
+    type PID: PlayerID;
     type Move;
     type State;
     type MaskedState;
     
-    fn init(&self, players: Vec<PlayerID>) -> (Self::State, PlayerID);
+    fn init(&self, players: Vec<Self::PID>) -> (Self::State, Self::PID);
     
-    fn make_move(&self, state: Self::State, player: PlayerID, player_move: Self::Move) -> MoveResult<Self::State>;
+    fn make_move(&self, state: Self::State, player: Self::PID, player_move: Self::Move) -> MoveResult<Self::State, Self::PID>;
     
-    fn mask_state(&self, state: &Self::State, player: PlayerID) -> Self::MaskedState;
+    fn mask_state(&self, state: &Self::State, player: Self::PID) -> Self::MaskedState;
 }
 
 pub trait Agent {

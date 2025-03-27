@@ -5,6 +5,11 @@ use rand::Rng;
 
 use crate::{game_simulation, game_types::*};
 
+#[derive(Hash, PartialEq, Eq, Clone, Copy)]
+struct PlayerID(u32);
+
+impl crate::game_types::PlayerID for PlayerID {}
+
 struct NimGameLogic {
     max_takes: u32,
     initial_pile_size: u32,
@@ -26,6 +31,7 @@ impl NimState {
 }
 
 impl GameLogic for NimGameLogic {
+    type PID = PlayerID;
     type Move = NimMove;
     type State = NimState;
     type MaskedState = NimState;
@@ -42,8 +48,7 @@ impl GameLogic for NimGameLogic {
 
     }
 
-    fn make_move(&self, state: Self::State, player: PlayerID, player_move: Self::Move) -> MoveResult<Self::State> {
-        println!("player {} making a move", player.0);
+    fn make_move(&self, state: Self::State, player: PlayerID, player_move: Self::Move) -> MoveResult<Self::State, Self::PID> {
         if player_move.amount > self.max_takes || player_move.amount == 0 {
             return MoveResult::GameOver(vec![(player, -1)].into_iter().collect());
         }
@@ -51,7 +56,6 @@ impl GameLogic for NimGameLogic {
         match state.pile_size.cmp(&player_move.amount) {
             Ordering::Less => MoveResult::GameOver(vec![(player, -1)].into_iter().collect()),
             Ordering::Equal => {
-                println!("the game should end! {}", player.0);
                 MoveResult::GameOver(vec![(player, 1)].into_iter().collect())
             },
             Ordering::Greater => MoveResult::NextState(NimState {
@@ -68,6 +72,7 @@ impl GameLogic for NimGameLogic {
 
 
 
+#[test]
 fn standard_nim_game() {
     let nim_logic = NimGameLogic {
         initial_pile_size: 10,
@@ -122,7 +127,6 @@ impl Agent for NimPerfectAgent {
             0 => *chosen_move = Some(NimMove {amount: 1}),
             x => *chosen_move = Some(NimMove {amount: x}),
         }
-        println!("player tried to take {} when pile was {}", chosen_move.as_mut().expect("didn't make move").amount, new_state.pile_size);
     }
 
     fn digest_state(&self, _new_state: &<Self::Game as GameLogic>::MaskedState) {
@@ -130,15 +134,13 @@ impl Agent for NimPerfectAgent {
     }
 }
 
-
+#[test]
 fn test_agents() {
-    println!("start!");
-    let mut rand = rand::rng();
     for pile_size in 1..=300 {
         for max_takes in 1..=20 {
             let nim_logic = NimGameLogic {
-                initial_pile_size: rand.random_range(1..=300),
-                max_takes: rand.random_range(1..=10),
+                initial_pile_size: pile_size,
+                max_takes: max_takes,
             };
 
             let agent_1 = NimPerfectAgent::new(&nim_logic); 
@@ -154,12 +156,5 @@ fn test_agents() {
 
         }
 
-    }
-}
-
-#[test]
-fn test_many_times() {
-    for _ in 0..10_000 {
-        test_agents();
     }
 }
