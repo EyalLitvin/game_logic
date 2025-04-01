@@ -3,13 +3,17 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use crate::{game_simulation, game_types::*};
 use indexmap::IndexMap;
 
-#[derive(Hash, PartialEq, Eq, Clone, Copy)]
-struct PlayerID(u32);
+use crate::{
+    game_simulation,
+    game_types::{Agent, GameLogic, GameResult, MoveResult, PlayerId},
+};
 
-impl crate::game_types::PlayerID for PlayerID {}
+#[derive(Hash, PartialEq, Eq, Clone, Copy)]
+struct NimPlayerId(u32);
+
+impl PlayerId for NimPlayerId {}
 
 struct NimGameLogic {
     max_takes: u32,
@@ -22,11 +26,11 @@ struct NimMove {
 #[derive(Clone)]
 struct NimState {
     pile_size: u32,
-    players: Vec<PlayerID>,
+    players: Vec<NimPlayerId>,
 }
 
 impl NimState {
-    fn next_player(&self, player: PlayerID) -> PlayerID {
+    fn next_player(&self, player: NimPlayerId) -> NimPlayerId {
         self.players[(self
             .players
             .iter()
@@ -38,12 +42,12 @@ impl NimState {
 }
 
 impl GameLogic for NimGameLogic {
-    type PID = PlayerID;
+    type PID = NimPlayerId;
     type Move = NimMove;
     type State = NimState;
     type MaskedState = NimState;
 
-    fn init(&self, players: Vec<PlayerID>) -> (Self::State, HashSet<PlayerID>) {
+    fn init(&self, players: Vec<NimPlayerId>) -> (Self::State, HashSet<NimPlayerId>) {
         assert!(players.len() == 2);
         (
             NimState {
@@ -89,7 +93,7 @@ impl GameLogic for NimGameLogic {
         }
     }
 
-    fn mask_state(&self, state: &Self::State, _player: PlayerID) -> Self::MaskedState {
+    fn mask_state(&self, state: &Self::State, _player: NimPlayerId) -> Self::MaskedState {
         state.clone()
     }
 }
@@ -100,10 +104,10 @@ fn standard_nim_game() {
         initial_pile_size: 10,
         max_takes: 4,
     };
-    let first_player = PlayerID(0);
-    let second_player = PlayerID(1);
+    let first_player = NimPlayerId(0);
+    let second_player = NimPlayerId(1);
     let (mut nim_state, _) = nim_logic.init(vec![first_player, second_player]);
-    let mut current_player: PlayerID;
+    let mut current_player: NimPlayerId;
     match nim_logic
         .make_move(nim_state, first_player, NimMove { amount: 3 })
         .unwrap()
@@ -147,6 +151,33 @@ fn standard_nim_game() {
         MoveResultSingleAction::NextState(_s, _p) => panic!(),
     };
 }
+pub enum MoveResultSingleAction<GameState, PID: PlayerId> {
+    NextState(GameState, PID),
+    GameOver(GameResult<PID>),
+}
+
+impl NimGameLogic {
+    fn make_move(
+        &self,
+        state: NimState,
+        player: NimPlayerId,
+        player_move: NimMove,
+    ) -> Option<MoveResultSingleAction<NimState, NimPlayerId>> {
+        match self.apply_moves(state, HashMap::from([(player, player_move)])) {
+            MoveResult::NextState(state, next_players) => Some(MoveResultSingleAction::NextState(
+                state,
+                if next_players.len() > 1 {
+                    return None;
+                } else {
+                    next_players.iter().next()?.clone()
+                },
+            )),
+            MoveResult::GameOver(game_result) => {
+                Some(MoveResultSingleAction::GameOver(game_result))
+            }
+        }
+    }
+}
 
 #[derive(Copy, Clone)]
 struct NimPerfectAgent {
@@ -186,17 +217,17 @@ fn test_agents() {
             let agent_1 = NimPerfectAgent::new(&nim_logic);
             let agent_2 = NimPerfectAgent::new(&nim_logic);
 
-            let agents: IndexMap<PlayerID, NimPerfectAgent> =
-                vec![(PlayerID(1), agent_1), (PlayerID(2), agent_2)]
+            let agents: IndexMap<NimPlayerId, NimPerfectAgent> =
+                vec![(NimPlayerId(1), agent_1), (NimPlayerId(2), agent_2)]
                     .into_iter()
                     .collect();
 
             use game_simulation::simulate_game;
             let result = simulate_game(&nim_logic, agents);
             let winner = if nim_logic.initial_pile_size % (nim_logic.max_takes + 1) == 0 {
-                PlayerID(2)
+                NimPlayerId(2)
             } else {
-                PlayerID(1)
+                NimPlayerId(1)
             };
             assert!(
                 result.contains_key(&winner),
