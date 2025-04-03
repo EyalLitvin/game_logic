@@ -1,8 +1,11 @@
 [package]
 name = "game_logic"
 version = "0.1.0"
-"description" = "Basic implementation for a generic game logic"
+authors = ["Eyal Litvin <eyalitvin@gmail.com>"]
+description = "A crate for simulating turn-based games with customizable game logic and agent behavior."
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/EyalLitvin/game_logic"
 
 [dependencies]
 indexmap = "2.8.0"
