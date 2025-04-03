@@ -1,6 +1,7 @@
 [package]
 name = "game_logic"
 version = "0.1.0"
+"description" = "Basic implementation for a generic game logic"
 edition = "2021"
 
 [dependencies]
