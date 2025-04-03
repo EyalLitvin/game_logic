@@ -5,7 +5,7 @@ use std::{
 
 pub trait PlayerId: Hash + Eq + Copy {}
 
-pub type GameResult<PID: PlayerId> = HashMap<PID, i32>;
+pub type GameResult<PID> = HashMap<PID, i32>;
 
 pub enum MoveResult<GameState, PID: PlayerId> {
     NextState(GameState, HashSet<PID>),
