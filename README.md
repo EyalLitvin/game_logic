@@ -35,6 +35,7 @@ This crate still requires some work. mainly:
 - Using this library for future projects[^2]:
     - creating an infrastructure for hosting bot tournaments
     - creating an infrastructure for hosting a game between human players over the net (using CLI or rendering to screen using something like bevy)
+- Adding docstrings to all functions
 
 [^2]: These projects practically amount to creating a generic implementation for the agent object, together with some wrapper around the simulation function. they will be linked here when created.
 
