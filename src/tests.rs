@@ -218,9 +218,7 @@ fn test_agents() {
             let agent_2 = NimPerfectAgent::new(&nim_logic);
 
             let agents: IndexMap<NimPlayerId, NimPerfectAgent> =
-                vec![(NimPlayerId(1), agent_1), (NimPlayerId(2), agent_2)]
-                    .into_iter()
-                    .collect();
+                [(NimPlayerId(1), agent_1), (NimPlayerId(2), agent_2)].into();
 
             use game_simulation::simulate_game;
             let result = simulate_game(&nim_logic, agents);
@@ -230,18 +228,10 @@ fn test_agents() {
                 NimPlayerId(1)
             };
             assert!(
-                result.contains_key(&winner),
-                "winner lost {}, {}, winner: {}",
+                result.contains_key(&winner) && result[&winner] == 1,
+                "wrong game result on initial pile size {}, max takes {}",
                 nim_logic.initial_pile_size,
                 nim_logic.max_takes,
-                winner.0
-            );
-            assert!(
-                result[&winner] == 1,
-                "winner won! {}, {}, {}",
-                nim_logic.initial_pile_size,
-                nim_logic.max_takes,
-                winner.0
             );
         }
     }
