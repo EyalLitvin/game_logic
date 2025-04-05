@@ -2,6 +2,14 @@ use indexmap::IndexMap;
 
 use crate::game_types::{Agent, GameLogic, GameResult, MoveResult};
 
+/// Simulates a game using the provided game logic and agents.
+///
+/// # Arguments
+/// * `game` - A reference to the game logic that defines the rules of the game.
+/// * `agents` - A mapping of player IDs to their respective agents that will play the game.
+///
+/// # Returns
+/// A `GameResult` that indicates the outcome of the game, including the final scores for each player.
 pub fn simulate_game<G, A>(game: &G, agents: IndexMap<G::PID, A>) -> GameResult<G::PID>
 where
     G: GameLogic,
