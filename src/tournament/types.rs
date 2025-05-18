@@ -1,8 +1,14 @@
-use std::collections::HashSet;
+use crate::common::id::Id;
+use std::collections::{HashMap, HashSet};
 
-use crate::game_types::{GameResult, Id};
+pub type TournamentResult<PID> = HashMap<PID, i32>;
 
-use super::tournament_manager::TournamentResult;
+pub type TournamentResult<PID> = HashMap<PID, i32>;
+
+pub trait IdGenerator {
+    type Id: Id;
+    fn generate_id(&self) -> Self::Id;
+}
 
 pub enum MatchMakerResult<PID: Id, GID: Id> {
     GameConfig(GID, HashSet<PID>),
@@ -18,6 +24,6 @@ pub trait MatchMaker: Sync {
     fn digest_result(
         &self,
         game_id: Self::GID,
-        result: GameResult<Self::PID>,
+        result: crate::game::types::GameResult<Self::PID>,
     ) -> Vec<MatchMakerResult<Self::PID, Self::GID>>;
 }

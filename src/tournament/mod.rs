@@ -1,2 +1,2 @@
-pub mod matchmaker;
-pub mod tournament_manager;
+pub mod engine;
+pub mod types;

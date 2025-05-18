@@ -1,5 +1,5 @@
-pub mod game_simulation;
-pub mod game_types;
+pub mod common;
+pub mod game;
 pub mod tournament;
 
 #[cfg(test)]

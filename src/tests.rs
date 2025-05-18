@@ -8,9 +8,9 @@ use rand::{rngs::ThreadRng, Rng};
 use indexmap::IndexMap;
 
 use crate::{
-    game_simulation,
-    game_types::{Agent, GameLogic, GameResult, Id, MoveResult},
-    tournament::tournament_manager::AgentFactory,
+    game::engine::simulate_game,
+    game::types::{Agent, GameLogic, GameResult, MoveResult},
+    common::id::Id,
 };
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy)]

@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 
-use crate::game_types::{Agent, GameLogic, GameResult, MoveResult};
+use super::types::{Agent, GameLogic, GameResult, MoveResult};
 
 /// Simulates a game using the provided game logic and agents.
 ///

@@ -1,25 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use indexmap::IndexMap;
-
-use crate::{
-    game_simulation::simulate_game,
-    game_types::{Agent, GameLogic, Id},
-};
-
-use super::matchmaker::{self, MatchMakerResult};
-
-pub type TournamentResult<PID> = HashMap<PID, i32>;
-
-pub trait AgentFactory {
-    type Agent: Agent;
-    fn create_agent(&self) -> Self::Agent;
-}
-
-pub trait IdGenerator {
-    type Id: Id;
-    fn generate_id(&self) -> Self::Id;
-}
+use super::types::{MatchMaker, MatchMakerResult, TournamentResult};
 
 pub fn host_tournament<G, A, GG, M>(
     game: &G,
@@ -28,12 +9,12 @@ pub fn host_tournament<G, A, GG, M>(
     game_id_generator: &GG,
 ) -> TournamentResult<G::PID>
 where
-    G: GameLogic + Sync,
+    G: crate::game::types::GameLogic + Sync,
     G::PID: Send,
-    A: Agent<Game = G> + Clone + Send,
-    GG: IdGenerator,
+    A: crate::game::types::Agent<Game = G> + Clone + Send,
+    GG: super::types::IdGenerator,
     GG::Id: Send,
-    M: matchmaker::MatchMaker<PID = G::PID, GID = GG::Id> + Sync,
+    M: MatchMaker<PID = G::PID, GID = GG::Id> + Sync,
 {
     let (rx, tx) = std::sync::mpsc::channel();
 
@@ -61,7 +42,7 @@ where
 
                     scope.spawn(move |_| {
                         // perhaps the thread should open a new process for this game and listen to its result. TODO
-                        let game_result = simulate_game::<G, A>(&game, agents);
+                        let game_result = crate::game::engine::simulate_game::<G, A>(&game, agents);
 
                         for match_result in matchmaker.digest_result(game_id, game_result) {
                             thread_rx.send(match_result).unwrap();

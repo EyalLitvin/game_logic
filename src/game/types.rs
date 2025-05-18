@@ -1,10 +1,5 @@
-use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
-};
-
-/// Represents a unique identifier for a player in the game.
-pub trait Id: Hash + Eq + Copy {}
+use crate::common::id::Id;
+use std::collections::{HashMap, HashSet};
 
 /// Represents the result of a game, mapping each player ID to their score.
 pub type GameResult<PID> = HashMap<PID, i32>;
@@ -17,7 +12,7 @@ pub enum MoveResult<GameState, PID: Id> {
 }
 
 /// Represents the logic of a turn-based game.
-pub trait GameLogic{
+pub trait GameLogic {
     /// The type of player ID used in the game.
     type PID: Id;
     /// The type of move that can be made in the game.
