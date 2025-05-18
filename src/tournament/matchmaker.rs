@@ -13,7 +13,7 @@ pub trait MatchMaker: Sync {
     type PID: Id;
     type GID: Id;
 
-    fn initial_games(&self) -> Vec<HashSet<Self::PID>>;
+    fn initial_games(&self) -> impl Iterator<Item = HashSet<Self::PID>>;
 
     fn digest_result(
         &self,

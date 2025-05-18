@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexMap;
 
@@ -21,18 +21,16 @@ pub trait IdGenerator {
     fn generate_id(&self) -> Self::Id;
 }
 
-// this neeads a complete rehaul - I cant Have a concrete AF type, as I cannot have a concrete Agent Type.
-
-pub fn host_tournament<G, GG, M>(
+pub fn host_tournament<G, A, GG, M>(
     game: &G,
-    agent_factories: HashMap<G::PID, dyn AgentFactory>,
+    agents: &HashMap<G::PID, A>,
     matchmaker: &M,
     game_id_generator: &GG,
 ) -> TournamentResult<G::PID>
 where
     G: GameLogic + Sync,
     G::PID: Send,
-    AF::Agent: Agent<Game = G> + Send,
+    A: Agent<Game = G> + Clone + Send,
     GG: IdGenerator,
     GG::Id: Send,
     M: matchmaker::MatchMaker<PID = G::PID, GID = GG::Id> + Sync,
@@ -55,11 +53,11 @@ where
                 }
                 MatchMakerResult::GameConfig(game_id, game_config) => {
                     let thread_rx = rx.clone();
-                    let agents = agent_factories
+                    let agents = agents
                         .iter()
                         .filter(|(pid, _)| game_config.contains(pid))
-                        .map(|(pid, agent_factory)| (pid.clone(), agent_factory.create_agent()))
-                        .collect::<IndexMap<_, _>>();
+                        .map(|(pid, agent_ref)| (pid.clone(), agent_ref.clone()))
+                        .collect();
 
                     scope.spawn(move |_| {
                         // perhaps the thread should open a new process for this game and listen to its result. TODO
