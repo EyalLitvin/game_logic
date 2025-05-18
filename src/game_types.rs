@@ -4,22 +4,22 @@ use std::{
 };
 
 /// Represents a unique identifier for a player in the game.
-pub trait PlayerId: Hash + Eq + Copy {}
+pub trait Id: Hash + Eq + Copy {}
 
 /// Represents the result of a game, mapping each player ID to their score.
 pub type GameResult<PID> = HashMap<PID, i32>;
 
 /// Represents the result of applying moves to a game state.
 /// It can either be the next game state along with the set of players who can make moves, or an indication that the game is over, together with the final scores.
-pub enum MoveResult<GameState, PID: PlayerId> {
+pub enum MoveResult<GameState, PID: Id> {
     NextState(GameState, HashSet<PID>),
     GameOver(GameResult<PID>),
 }
 
 /// Represents the logic of a turn-based game.
-pub trait GameLogic {
+pub trait GameLogic{
     /// The type of player ID used in the game.
-    type PID: PlayerId;
+    type PID: Id;
     /// The type of move that can be made in the game.
     type Move;
     /// The type of game state used in the game.

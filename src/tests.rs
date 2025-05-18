@@ -3,17 +3,20 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
+use rand::{rngs::ThreadRng, Rng};
+
 use indexmap::IndexMap;
 
 use crate::{
     game_simulation,
-    game_types::{Agent, GameLogic, GameResult, MoveResult, PlayerId},
+    game_types::{Agent, GameLogic, GameResult, Id, MoveResult},
+    tournament::tournament_manager::AgentFactory,
 };
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy)]
 struct NimPlayerId(u32);
 
-impl PlayerId for NimPlayerId {}
+impl Id for NimPlayerId {}
 
 struct NimGameLogic {
     max_takes: u32,
@@ -151,7 +154,7 @@ fn standard_nim_game() {
         MoveResultSingleAction::NextState(_s, _p) => panic!(),
     };
 }
-pub enum MoveResultSingleAction<GameState, PID: PlayerId> {
+pub enum MoveResultSingleAction<GameState, PID: Id> {
     NextState(GameState, PID),
     GameOver(GameResult<PID>),
 }
@@ -205,6 +208,51 @@ impl Agent for NimPerfectAgent {
     fn digest_state(&self, _new_state: <Self::Game as GameLogic>::MaskedState) {}
 }
 
+struct NimRandomAgent {
+    max_takes: u32,
+}
+
+impl Agent for NimRandomAgent {
+    type Game = NimGameLogic;
+    fn calculate_next_move(
+        &self,
+        _new_state: <Self::Game as GameLogic>::MaskedState,
+    ) -> <Self::Game as GameLogic>::Move {
+        let mut rng = rand::rng();
+        NimMove {
+            amount: rng.random_range(1..=self.max_takes),
+        }
+    }
+
+    fn digest_state(&self, _new_state: <Self::Game as GameLogic>::MaskedState) {}
+}
+
+struct PerfectFactory {
+    mod_base: u32,
+}
+
+impl AgentFactory for PerfectFactory {
+    type Agent = NimPerfectAgent;
+    fn create_agent(&self) -> Self::Agent {
+        NimPerfectAgent {
+            mod_base: self.mod_base,
+        }
+    }
+}
+
+struct RandomFactory {
+    max_takes: u32,
+}
+
+impl AgentFactory for RandomFactory {
+    type Agent = NimRandomAgent;
+    fn create_agent(&self) -> Self::Agent {
+        NimRandomAgent {
+            max_takes: self.max_takes,
+        }
+    }
+}
+
 #[test]
 fn test_agents() {
     for pile_size in 1..=300 {
@@ -235,4 +283,21 @@ fn test_agents() {
             );
         }
     }
+}
+
+#[test]
+fn simulate_tournament() {
+    let game = NimGameLogic {initial_pile_size: 100, max_takes: 5};
+    let agent_factories: HashMap<NimPlayerId,  = hash_map![]
+
+
+pub fn host_tournament<G, A, AF, GG, M>(
+    game: &G,
+    agent_factories: HashMap<G::PID, AF>,
+    matchmaker: &M,
+    game_id_generator: &GG,
+) -> TournamentResult<G::PID>
+
+
+
 }
