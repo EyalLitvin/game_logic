@@ -3,7 +3,7 @@
 mod common;
 
 use indexmap::IndexMap;
-use game_logic::{simulate_game, core::{GameLogic, MoveResult}};
+use game_logic::{simulate_game, core::{GameError, GameLogic, MoveResult}};
 use common::nim::{NimGameLogic, NimMove, NimPerfectAgent, NimPlayerId};
 use std::collections::HashMap;
 
@@ -18,10 +18,10 @@ fn test_minimal_game_single_match() {
     let agent_1 = NimPerfectAgent::new(&game);
     let agent_2 = NimPerfectAgent::new(&game);
 
-    let agents: IndexMap<NimPlayerId, NimPerfectAgent> =
+    let mut agents: IndexMap<NimPlayerId, NimPerfectAgent> =
         [(NimPlayerId(1), agent_1), (NimPlayerId(2), agent_2)].into();
 
-    let result = simulate_game(&game, agents);
+    let result = simulate_game(&game, &mut agents, None).expect("Game should complete");
 
     // Player 1 goes first and takes the last match
     assert_eq!(result[&NimPlayerId(1)], 1);
@@ -29,72 +29,57 @@ fn test_minimal_game_single_match() {
 
 #[test]
 fn test_invalid_move_too_many() {
-    // Test that taking more than max_takes results in a loss
+    // Test that taking more than max_takes results in an error
     let game = NimGameLogic {
         initial_pile_size: 10,
         max_takes: 3,
     };
 
-    let (state, _) = game.init(vec![NimPlayerId(1), NimPlayerId(2)]);
+    let (mut state, _) = game.init(vec![NimPlayerId(1), NimPlayerId(2)]);
 
     // Try to take more than allowed
     let result = game.apply_moves(
-        state,
+        &mut state,
         HashMap::from([(NimPlayerId(1), NimMove { amount: 5 })]),
     );
 
-    match result {
-        MoveResult::GameOver(scores) => {
-            assert_eq!(scores[&NimPlayerId(1)], -1, "Player should lose for invalid move");
-        }
-        _ => panic!("Should be game over due to invalid move"),
-    }
+    assert!(matches!(result, Err(GameError::InvalidMove { .. })), "Should return InvalidMove error");
 }
 
 #[test]
 fn test_invalid_move_zero() {
-    // Test that taking 0 matches results in a loss
+    // Test that taking 0 matches results in an error
     let game = NimGameLogic {
         initial_pile_size: 10,
         max_takes: 3,
     };
 
-    let (state, _) = game.init(vec![NimPlayerId(1), NimPlayerId(2)]);
+    let (mut state, _) = game.init(vec![NimPlayerId(1), NimPlayerId(2)]);
 
     let result = game.apply_moves(
-        state,
+        &mut state,
         HashMap::from([(NimPlayerId(1), NimMove { amount: 0 })]),
     );
 
-    match result {
-        MoveResult::GameOver(scores) => {
-            assert_eq!(scores[&NimPlayerId(1)], -1, "Player should lose for taking 0");
-        }
-        _ => panic!("Should be game over due to invalid move"),
-    }
+    assert!(matches!(result, Err(GameError::InvalidMove { .. })), "Should return InvalidMove error");
 }
 
 #[test]
 fn test_invalid_move_more_than_pile() {
-    // Test that taking more matches than available results in a loss
+    // Test that taking more matches than available results in an error
     let game = NimGameLogic {
         initial_pile_size: 2,
         max_takes: 3,
     };
 
-    let (state, _) = game.init(vec![NimPlayerId(1), NimPlayerId(2)]);
+    let (mut state, _) = game.init(vec![NimPlayerId(1), NimPlayerId(2)]);
 
     let result = game.apply_moves(
-        state,
+        &mut state,
         HashMap::from([(NimPlayerId(1), NimMove { amount: 3 })]),
     );
 
-    match result {
-        MoveResult::GameOver(scores) => {
-            assert_eq!(scores[&NimPlayerId(1)], -1, "Player should lose for taking too many");
-        }
-        _ => panic!("Should be game over due to invalid move"),
-    }
+    assert!(matches!(result, Err(GameError::InvalidMove { .. })), "Should return InvalidMove error");
 }
 
 #[test]
@@ -105,15 +90,15 @@ fn test_exact_match_wins() {
         max_takes: 3,
     };
 
-    let (state, _) = game.init(vec![NimPlayerId(1), NimPlayerId(2)]);
+    let (mut state, _) = game.init(vec![NimPlayerId(1), NimPlayerId(2)]);
 
     let result = game.apply_moves(
-        state,
+        &mut state,
         HashMap::from([(NimPlayerId(1), NimMove { amount: 3 })]),
     );
 
     match result {
-        MoveResult::GameOver(scores) => {
+        Ok(MoveResult::GameOver(scores)) => {
             assert_eq!(scores[&NimPlayerId(1)], 1, "Player should win by taking last match");
         }
         _ => panic!("Should be game over with a win"),
@@ -167,9 +152,8 @@ fn test_game_alternates_players() {
     assert_eq!(active.len(), 1);
     assert!(active.contains(&NimPlayerId(1)));
 
-    match game.apply_moves(state.clone(), HashMap::from([(NimPlayerId(1), NimMove { amount: 1 })])) {
-        MoveResult::NextState(next_state, next_active) => {
-            state = next_state;
+    match game.apply_moves(&mut state, HashMap::from([(NimPlayerId(1), NimMove { amount: 1 })])) {
+        Ok(MoveResult::Continue(next_active)) => {
             active = next_active;
         }
         _ => panic!("Game shouldn't be over"),
@@ -179,9 +163,8 @@ fn test_game_alternates_players() {
     assert_eq!(active.len(), 1);
     assert!(active.contains(&NimPlayerId(2)));
 
-    match game.apply_moves(state.clone(), HashMap::from([(NimPlayerId(2), NimMove { amount: 1 })])) {
-        MoveResult::NextState(next_state, next_active) => {
-            state = next_state;
+    match game.apply_moves(&mut state, HashMap::from([(NimPlayerId(2), NimMove { amount: 1 })])) {
+        Ok(MoveResult::Continue(next_active)) => {
             active = next_active;
         }
         _ => panic!("Game shouldn't be over"),
@@ -190,4 +173,39 @@ fn test_game_alternates_players() {
     // Back to Player 1
     assert_eq!(active.len(), 1);
     assert!(active.contains(&NimPlayerId(1)));
+}
+
+#[test]
+fn test_legal_moves() {
+    let game = NimGameLogic {
+        initial_pile_size: 5,
+        max_takes: 3,
+    };
+
+    let (state, _) = game.init(vec![NimPlayerId(1), NimPlayerId(2)]);
+
+    let legal = game.legal_moves(&state, NimPlayerId(1));
+
+    // Should be able to take 1, 2, or 3
+    assert_eq!(legal.len(), 3);
+    assert!(legal.iter().any(|m| m.amount == 1));
+    assert!(legal.iter().any(|m| m.amount == 2));
+    assert!(legal.iter().any(|m| m.amount == 3));
+}
+
+#[test]
+fn test_legal_moves_limited_by_pile() {
+    let game = NimGameLogic {
+        initial_pile_size: 2,
+        max_takes: 5,
+    };
+
+    let (state, _) = game.init(vec![NimPlayerId(1), NimPlayerId(2)]);
+
+    let legal = game.legal_moves(&state, NimPlayerId(1));
+
+    // Can only take 1 or 2 (limited by pile size, not max_takes)
+    assert_eq!(legal.len(), 2);
+    assert!(legal.iter().any(|m| m.amount == 1));
+    assert!(legal.iter().any(|m| m.amount == 2));
 }

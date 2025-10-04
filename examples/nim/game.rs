@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use game_logic::core::{GameLogic, GameResult, Id, MoveResult};
+use game_logic::core::{FinalScores, GameError, GameLogic, Id, MoveResult};
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
 pub struct NimPlayerId(pub u32);
@@ -15,6 +15,7 @@ pub struct NimGameLogic {
     pub initial_pile_size: u32,
 }
 
+#[derive(Clone)]
 pub struct NimMove {
     pub amount: u32,
 }
@@ -56,37 +57,69 @@ impl GameLogic for NimGameLogic {
 
     fn apply_moves(
         &self,
-        state: Self::State,
+        state: &mut Self::State,
         moves: HashMap<Self::PID, Self::Move>,
-    ) -> MoveResult<Self::State, Self::PID> {
+    ) -> Result<MoveResult<Self::PID>, GameError<Self::PID>> {
         let mut moves_iter = moves.iter();
 
         match (moves_iter.next(), moves_iter.next()) {
             (Some((&player, player_move)), None) => {
-                if player_move.amount > self.max_takes || player_move.amount == 0 {
-                    return MoveResult::GameOver(vec![(player, -1)].into_iter().collect());
+                // Validate move amount
+                if player_move.amount > self.max_takes {
+                    return Err(GameError::InvalidMove {
+                        player,
+                        reason: format!("Cannot take {} (max is {})", player_move.amount, self.max_takes),
+                    });
                 }
+                if player_move.amount == 0 {
+                    return Err(GameError::InvalidMove {
+                        player,
+                        reason: "Cannot take 0 matches".to_string(),
+                    });
+                }
+
                 let next_player = state.next_player(player);
+
                 match state.pile_size.cmp(&player_move.amount) {
                     Ordering::Less => {
-                        MoveResult::GameOver(vec![(player, -1)].into_iter().collect())
+                        Err(GameError::InvalidMove {
+                            player,
+                            reason: format!("Cannot take {} matches (only {} remaining)", player_move.amount, state.pile_size),
+                        })
                     }
                     Ordering::Equal => {
-                        MoveResult::GameOver(vec![(player, 1)].into_iter().collect())
+                        // Player wins by taking the last match
+                        state.pile_size = 0;
+                        Ok(MoveResult::GameOver(vec![(player, 1)].into_iter().collect()))
                     }
-                    Ordering::Greater => MoveResult::NextState(
-                        NimState {
-                            pile_size: state.pile_size - player_move.amount,
-                            players: state.players,
-                        },
-                        HashSet::from([next_player]),
-                    ),
+                    Ordering::Greater => {
+                        // Update state in-place
+                        state.pile_size -= player_move.amount;
+                        Ok(MoveResult::Continue(HashSet::from([next_player])))
+                    }
                 }
             }
+            (None, None) => {
+                Err(GameError::MissingMoves {
+                    expected: HashSet::from_iter(state.players.iter().copied()),
+                    got: HashSet::new(),
+                })
+            }
             _ => {
-                panic!("not exactly one player tried to make a move")
+                Err(GameError::IllegalState(
+                    "Multiple players attempted to move in a turn-based game".to_string()
+                ))
             }
         }
+    }
+
+    fn legal_moves(&self, state: &Self::State, _player: Self::PID) -> Vec<Self::Move>
+    where
+        Self::Move: Clone,
+    {
+        (1..=self.max_takes.min(state.pile_size))
+            .map(|amount| NimMove { amount })
+            .collect()
     }
 
     fn mask_state(&self, state: &Self::State, _player: NimPlayerId) -> Self::MaskedState {

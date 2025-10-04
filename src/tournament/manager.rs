@@ -31,7 +31,7 @@ pub fn host_tournament<G, A, AF, GG, M>(
 ) -> TournamentResult<G::PID>
 where
     G: GameLogic + Sync,
-    G::PID: Send,
+    G::PID: Send + std::fmt::Debug,
     A: Agent<Game = G> + Send,
     AF: AgentFactory<Agent = A>,
     GG: IdGenerator,
@@ -56,7 +56,7 @@ where
                 }
                 MatchMakerResult::GameConfig(game_id, game_config) => {
                     let thread_rx = rx.clone();
-                    let agents = agent_factories
+                    let mut agents = agent_factories
                         .iter()
                         .filter(|(pid, _)| game_config.contains(pid))
                         .map(|(pid, agent_factory)| (pid.clone(), agent_factory.create_agent()))
@@ -64,7 +64,7 @@ where
 
                     scope.spawn(move |_| {
                         // perhaps the thread should open a new process for this game and listen to its result. TODO
-                        let game_result = simulate_game::<G, A>(&game, agents);
+                        let game_result = simulate_game::<G, A>(&game, &mut agents, None).expect("Game should complete");
 
                         for match_result in matchmaker.digest_result(game_id, game_result) {
                             thread_rx.send(match_result).unwrap();

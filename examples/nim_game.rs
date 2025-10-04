@@ -69,7 +69,7 @@ fn simulate_ai_vs_ai<A1, A2>(
     let player2 = NimPlayerId(2);
 
     // For simplicity in the example, just use two perfect agents
-    let agents: IndexMap<NimPlayerId, NimPerfectAgent> = [
+    let mut agents: IndexMap<NimPlayerId, NimPerfectAgent> = [
         (player1, NimPerfectAgent::new(game)),
         (player2, NimPerfectAgent::new(game)),
     ].into();
@@ -77,15 +77,18 @@ fn simulate_ai_vs_ai<A1, A2>(
     println!("\nSimulating: {} vs {}", name1, name2);
     println!("Initial pile: {}, Max takes: {}\n", game.initial_pile_size, game.max_takes);
 
-    let result = simulate_game(game, agents);
-
-    println!("Game finished!");
-    for (player_id, score) in result {
-        let name = if player_id == player1 { name1 } else { name2 };
-        if score > 0 {
-            println!("{} wins!", name);
-        } else {
-            println!("{} loses!", name);
+    match simulate_game(game, &mut agents, Some(1000)) {
+        Ok(result) => {
+            println!("Game finished!");
+            for (player_id, score) in result {
+                let name = if player_id == player1 { name1 } else { name2 };
+                if score > 0 {
+                    println!("{} wins!", name);
+                }
+            }
+        }
+        Err(e) => {
+            println!("Game error: {}", e);
         }
     }
 }

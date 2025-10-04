@@ -21,10 +21,10 @@ fn test_perfect_agent_wins_from_losing_position() {
             let agent_1 = NimPerfectAgent::new(&game);
             let agent_2 = NimPerfectAgent::new(&game);
 
-            let agents: IndexMap<NimPlayerId, NimPerfectAgent> =
+            let mut agents: IndexMap<NimPlayerId, NimPerfectAgent> =
                 [(NimPlayerId(1), agent_1), (NimPlayerId(2), agent_2)].into();
 
-            let result = simulate_game(&game, agents);
+            let result = simulate_game(&game, &mut agents, None).expect("Game should complete");
 
             // When pile % (max_takes + 1) == 0, player 2 should win
             assert_eq!(
@@ -63,10 +63,10 @@ fn test_perfect_agent_wins_from_winning_position() {
         let agent_1 = NimPerfectAgent::new(&game);
         let agent_2 = NimPerfectAgent::new(&game);
 
-        let agents: IndexMap<NimPlayerId, NimPerfectAgent> =
+        let mut agents: IndexMap<NimPlayerId, NimPerfectAgent> =
             [(NimPlayerId(1), agent_1), (NimPlayerId(2), agent_2)].into();
 
-        let result = simulate_game(&game, agents);
+        let result = simulate_game(&game, &mut agents, None).expect("Game should complete");
 
         assert_eq!(
             result[&NimPlayerId(1)],
@@ -88,10 +88,10 @@ fn test_simulate_game_returns_correct_result_format() {
     let agent_1 = NimPerfectAgent::new(&game);
     let agent_2 = NimPerfectAgent::new(&game);
 
-    let agents: IndexMap<NimPlayerId, NimPerfectAgent> =
+    let mut agents: IndexMap<NimPlayerId, NimPerfectAgent> =
         [(NimPlayerId(1), agent_1), (NimPlayerId(2), agent_2)].into();
 
-    let result = simulate_game(&game, agents);
+    let result = simulate_game(&game, &mut agents, None).expect("Game should complete");
 
     // Result should contain exactly one winner with score 1
     assert_eq!(result.len(), 1, "Result should contain exactly one entry");
@@ -113,11 +113,11 @@ fn test_game_terminates_in_reasonable_time() {
     let agent_1 = NimPerfectAgent::new(&game);
     let agent_2 = NimPerfectAgent::new(&game);
 
-    let agents: IndexMap<NimPlayerId, NimPerfectAgent> =
+    let mut agents: IndexMap<NimPlayerId, NimPerfectAgent> =
         [(NimPlayerId(1), agent_1), (NimPlayerId(2), agent_2)].into();
 
     // If this hangs, the test will timeout
-    let result = simulate_game(&game, agents);
+    let result = simulate_game(&game, &mut agents, Some(1000)).expect("Game should complete");
 
     assert!(result.len() > 0, "Game should produce a result");
 }

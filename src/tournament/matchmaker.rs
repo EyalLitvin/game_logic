@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::core::{GameResult, Id};
+use crate::core::{FinalScores, Id};
 
 use super::manager::TournamentResult;
 
@@ -18,6 +18,6 @@ pub trait MatchMaker: Sync {
     fn digest_result(
         &self,
         game_id: Self::GID,
-        result: GameResult<Self::PID>,
+        result: FinalScores<Self::PID>,
     ) -> Vec<MatchMakerResult<Self::PID, Self::GID>>;
 }

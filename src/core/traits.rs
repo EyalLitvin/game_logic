@@ -1,9 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use super::types::{Id, MoveResult};
+use super::types::{GameError, Id, MoveResult};
 
 /// Represents the logic of a turn-based game.
-pub trait GameLogic{
+pub trait GameLogic {
     /// The type of player ID used in the game.
     type PID: Id;
     /// The type of move that can be made in the game.
@@ -22,23 +22,40 @@ pub trait GameLogic{
     /// A tuple containing the initial game state and a set of player IDs that can make moves.
     fn init(&self, players: Vec<Self::PID>) -> (Self::State, HashSet<Self::PID>);
 
-    /// Applies the given moves to the game state and returns the result.
+    /// Applies the given moves to the game state in-place and returns the result.
     ///
     /// # Arguments
-    /// * `state` - The current game state.
+    /// * `state` - A mutable reference to the current game state.
     /// * `moves` - A mapping of player IDs to their respective moves.
     ///
     /// # Returns
-    /// A `MoveResult` that can either be the next game state along with the set of players who can make moves, or an indication that the game is over, together with the final scores.
+    /// A `Result` containing either:
+    /// - `Ok(MoveResult)` - The game continues with active players, or the game is over with final scores
+    /// - `Err(GameError)` - An error occurred (invalid move, wrong player, etc.)
     ///
-    /// # Panics
-    /// There is currently no validation of moves, so this function may panic if the moves are invalid.
-    /// Additionally, it is up to the caller to ensure that the moves are made by the correct players.
+    /// # Errors
+    /// Returns `GameError` if:
+    /// - A move is invalid for the current state
+    /// - A move is made by a non-active player
+    /// - Required moves are missing from active players
     fn apply_moves(
         &self,
-        state: Self::State,
+        state: &mut Self::State,
         moves: HashMap<Self::PID, Self::Move>,
-    ) -> MoveResult<Self::State, Self::PID>;
+    ) -> Result<MoveResult<Self::PID>, GameError<Self::PID>>;
+
+    /// Returns the legal moves for a player in the current state.
+    ///
+    /// # Arguments
+    /// * `state` - The current game state.
+    /// * `player` - The player ID to get legal moves for.
+    ///
+    /// # Returns
+    /// A vector of legal moves for the player. Returns empty vector if player has no legal moves
+    /// or is not an active player.
+    fn legal_moves(&self, state: &Self::State, player: Self::PID) -> Vec<Self::Move>
+    where
+        Self::Move: Clone;
 
     /// Masks the game state for a specific player, returning a representation of the state that is visible to that player.
     ///
@@ -53,29 +70,26 @@ pub trait GameLogic{
 
 /// Represents an agent that can play a game.
 pub trait Agent {
-    // The game the agent is playing.
+    /// The game the agent is playing.
     type Game: GameLogic;
 
-    // type State = <Self::Game as GameLogic>::MaskedState;
-    // type Move = <Self::Game as GameLogic>::Move;
-
-    /// The for the agent to update its internal state based on the new game state.
-    /// This is called with a new game state that the agent should digest, but not decide on a move for (as it is not the agent's turn).
+    /// Updates the agent's internal state based on the new game state.
+    /// This is called with a new game state when it's not the agent's turn.
     ///
     /// # Arguments
-    /// * `new_state` - The new game state that the agent should digest.
-    fn digest_state(&self, new_state: <Self::Game as GameLogic>::MaskedState);
+    /// * `new_state` - The new game state that the agent should observe.
+    fn digest_state(&mut self, new_state: <Self::Game as GameLogic>::MaskedState);
 
     /// Calculates the next move for the agent based on the new game state.
-    /// This is called with a new game state that the agent should decide on a move for (as it is the agent's turn).
+    /// This is called when it's the agent's turn to make a move.
     ///
     /// # Arguments
-    /// * `new_state` - The new game state that the agent should decide on a move for.
+    /// * `new_state` - The current game state visible to the agent.
     ///
     /// # Returns
     /// The move that the agent has decided to make.
     fn calculate_next_move(
-        &self,
+        &mut self,
         new_state: <Self::Game as GameLogic>::MaskedState,
     ) -> <Self::Game as GameLogic>::Move;
 }

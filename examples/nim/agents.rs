@@ -21,14 +21,14 @@ impl NimPerfectAgent {
 impl Agent for NimPerfectAgent {
     type Game = NimGameLogic;
 
-    fn calculate_next_move(&self, new_state: NimState) -> NimMove {
+    fn calculate_next_move(&mut self, new_state: NimState) -> NimMove {
         match new_state.pile_size % self.mod_base {
             0 => NimMove { amount: 1 },
             x => NimMove { amount: x },
         }
     }
 
-    fn digest_state(&self, _new_state: <Self::Game as GameLogic>::MaskedState) {}
+    fn digest_state(&mut self, _new_state: <Self::Game as GameLogic>::MaskedState) {}
 }
 
 pub struct NimRandomAgent {
@@ -45,7 +45,7 @@ impl Agent for NimRandomAgent {
     type Game = NimGameLogic;
 
     fn calculate_next_move(
-        &self,
+        &mut self,
         _new_state: <Self::Game as GameLogic>::MaskedState,
     ) -> <Self::Game as GameLogic>::Move {
         let mut rng = rand::rng();
@@ -54,7 +54,7 @@ impl Agent for NimRandomAgent {
         }
     }
 
-    fn digest_state(&self, _new_state: <Self::Game as GameLogic>::MaskedState) {}
+    fn digest_state(&mut self, _new_state: <Self::Game as GameLogic>::MaskedState) {}
 }
 
 pub struct PerfectFactory {
