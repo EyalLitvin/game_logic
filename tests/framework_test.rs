@@ -5,7 +5,7 @@ mod common;
 
 use indexmap::IndexMap;
 use game_logic::simulate_game;
-use common::{NimGameLogic, NimPerfectAgent, NimPlayerId};
+use common::nim::{NimGameLogic, NimPerfectAgent, NimPlayerId};
 
 #[test]
 fn test_perfect_agent_wins_from_losing_position() {

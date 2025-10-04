@@ -4,7 +4,7 @@ mod common;
 
 use indexmap::IndexMap;
 use game_logic::{simulate_game, core::{GameLogic, MoveResult}};
-use common::{NimGameLogic, NimMove, NimPerfectAgent, NimPlayerId};
+use common::nim::{NimGameLogic, NimMove, NimPerfectAgent, NimPlayerId};
 use std::collections::HashMap;
 
 #[test]

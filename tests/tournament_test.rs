@@ -6,7 +6,7 @@ use game_logic::tournament::{AgentFactory, IdGenerator};
 use game_logic::core::Id;
 
 mod common;
-use common::PerfectFactory;
+use common::nim::PerfectFactory;
 
 #[test]
 fn test_agent_factory_creates_agents() {
