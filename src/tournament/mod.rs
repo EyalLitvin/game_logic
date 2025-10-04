@@ -1,2 +1,5 @@
 pub mod matchmaker;
-pub mod tournament_manager;
+pub mod manager;
+
+pub use manager::{host_tournament, AgentFactory, IdGenerator, TournamentResult};
+pub use matchmaker::{MatchMaker, MatchMakerResult};

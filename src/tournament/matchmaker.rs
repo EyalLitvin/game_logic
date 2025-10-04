@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use crate::game_types::{GameResult, Id};
+use crate::core::{GameResult, Id};
 
-use super::tournament_manager::TournamentResult;
+use super::manager::TournamentResult;
 
 pub enum MatchMakerResult<PID: Id, GID: Id> {
     GameConfig(GID, HashSet<PID>),

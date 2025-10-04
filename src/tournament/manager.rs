@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use indexmap::IndexMap;
 
 use crate::{
-    game_simulation::simulate_game,
-    game_types::{Agent, GameLogic, Id},
+    simulation::simulate_game,
+    core::{Agent, GameLogic, Id},
 };
 
 use super::matchmaker::{self, MatchMakerResult};
@@ -23,16 +23,17 @@ pub trait IdGenerator {
 
 // this neeads a complete rehaul - I cant Have a concrete AF type, as I cannot have a concrete Agent Type.
 
-pub fn host_tournament<G, GG, M>(
+pub fn host_tournament<G, A, AF, GG, M>(
     game: &G,
-    agent_factories: HashMap<G::PID, dyn AgentFactory>,
+    agent_factories: HashMap<G::PID, AF>,
     matchmaker: &M,
     game_id_generator: &GG,
 ) -> TournamentResult<G::PID>
 where
     G: GameLogic + Sync,
     G::PID: Send,
-    AF::Agent: Agent<Game = G> + Send,
+    A: Agent<Game = G> + Send,
+    AF: AgentFactory<Agent = A>,
     GG: IdGenerator,
     GG::Id: Send,
     M: matchmaker::MatchMaker<PID = G::PID, GID = GG::Id> + Sync,

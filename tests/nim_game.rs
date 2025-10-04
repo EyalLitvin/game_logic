@@ -3,14 +3,14 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use rand::{rngs::ThreadRng, Rng};
+use rand::Rng;
 
 use indexmap::IndexMap;
 
-use crate::{
-    game_simulation,
-    game_types::{Agent, GameLogic, GameResult, Id, MoveResult},
-    tournament::tournament_manager::AgentFactory,
+use game_logic::{
+    simulate_game,
+    core::{Agent, GameLogic, GameResult, Id, MoveResult},
+    tournament::AgentFactory,
 };
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy)]
@@ -268,7 +268,6 @@ fn test_agents() {
             let agents: IndexMap<NimPlayerId, NimPerfectAgent> =
                 [(NimPlayerId(1), agent_1), (NimPlayerId(2), agent_2)].into();
 
-            use game_simulation::simulate_game;
             let result = simulate_game(&nim_logic, agents);
             let winner = if nim_logic.initial_pile_size % (nim_logic.max_takes + 1) == 0 {
                 NimPlayerId(2)
@@ -283,21 +282,4 @@ fn test_agents() {
             );
         }
     }
-}
-
-#[test]
-fn simulate_tournament() {
-    let game = NimGameLogic {initial_pile_size: 100, max_takes: 5};
-    let agent_factories: HashMap<NimPlayerId,  = hash_map![]
-
-
-pub fn host_tournament<G, A, AF, GG, M>(
-    game: &G,
-    agent_factories: HashMap<G::PID, AF>,
-    matchmaker: &M,
-    game_id_generator: &GG,
-) -> TournamentResult<G::PID>
-
-
-
 }
