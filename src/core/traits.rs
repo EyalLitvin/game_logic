@@ -56,29 +56,28 @@ pub trait GameLogic {
 }
 
 /// Represents an agent that can play a game.
-pub trait Agent {
-    /// The game the agent is playing.
-    type Game: GameLogic;
-
+/// Parameterized by the game type G rather than using an associated type,
+/// which keeps the trait object-safe and allows heterogeneous agents
+/// (e.g. Box<dyn Agent<G>>) in the same collection.
+pub trait Agent<G: GameLogic> {
     /// Updates the agent's internal state based on the new game state.
     /// This is called with a new game state when it's not the agent's turn.
-    ///
-    /// # Arguments
-    /// * `new_state` - The new game state that the agent should observe.
-    fn digest_state(&mut self, new_state: <Self::Game as GameLogic>::MaskedState);
+    fn digest_state(&mut self, new_state: G::MaskedState);
 
     /// Calculates the next move for the agent based on the new game state.
     /// This is called when it's the agent's turn to make a move.
-    ///
-    /// # Arguments
-    /// * `new_state` - The current game state visible to the agent.
-    ///
-    /// # Returns
-    /// The move that the agent has decided to make.
-    fn calculate_next_move(
-        &mut self,
-        new_state: <Self::Game as GameLogic>::MaskedState,
-    ) -> <Self::Game as GameLogic>::Move;
+    fn calculate_next_move(&mut self, new_state: G::MaskedState) -> G::Move;
+}
+
+/// Blanket impl so that Box<dyn Agent<G>> can be used wherever Agent<G> is expected.
+impl<G: GameLogic, A: Agent<G> + ?Sized> Agent<G> for Box<A> {
+    fn digest_state(&mut self, new_state: G::MaskedState) {
+        (**self).digest_state(new_state);
+    }
+
+    fn calculate_next_move(&mut self, new_state: G::MaskedState) -> G::Move {
+        (**self).calculate_next_move(new_state)
+    }
 }
 
 /// Extension trait for games that can enumerate legal moves from a player's perspective.
