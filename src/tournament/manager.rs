@@ -18,7 +18,7 @@ pub trait AgentFactory {
 
 pub trait IdGenerator {
     type Id: Id;
-    fn generate_id(&self) -> Self::Id;
+    fn generate_id(&mut self) -> Self::Id;
 }
 
 // this neeads a complete rehaul - I cant Have a concrete AF type, as I cannot have a concrete Agent Type.
@@ -27,7 +27,7 @@ pub fn host_tournament<G, A, AF, GG, M>(
     game: &G,
     agent_factories: HashMap<G::PID, AF>,
     matchmaker: &M,
-    game_id_generator: &GG,
+    game_id_generator: &mut GG,
 ) -> TournamentResult<G::PID>
 where
     G: GameLogic + Sync,
@@ -38,10 +38,10 @@ where
     GG::Id: Send,
     M: matchmaker::MatchMaker<PID = G::PID, GID = GG::Id> + Sync,
 {
-    let (rx, tx) = std::sync::mpsc::channel();
+    let (tx, rx) = std::sync::mpsc::channel();
 
     for game_config in matchmaker.initial_games() {
-        rx.send(MatchMakerResult::GameConfig(
+        tx.send(MatchMakerResult::GameConfig(
             game_id_generator.generate_id(),
             game_config,
         ))
@@ -50,12 +50,12 @@ where
 
     crossbeam::thread::scope(|scope| {
         loop {
-            match tx.recv().unwrap() {
+            match rx.recv().unwrap() {
                 MatchMakerResult::Result(tournament_result) => {
                     break tournament_result;
                 }
                 MatchMakerResult::GameConfig(game_id, game_config) => {
-                    let thread_rx = rx.clone();
+                    let thread_tx = tx.clone();
                     let mut agents = agent_factories
                         .iter()
                         .filter(|(pid, _)| game_config.contains(pid))
@@ -67,7 +67,7 @@ where
                         let game_result = simulate_game::<G, A>(&game, &mut agents, None).expect("Game should complete");
 
                         for match_result in matchmaker.digest_result(game_id, game_result) {
-                            thread_rx.send(match_result).unwrap();
+                            thread_tx.send(match_result).unwrap();
                         }
                     });
                 }

@@ -38,30 +38,28 @@ struct TestGameId(u32);
 impl Id for TestGameId {}
 
 struct SimpleIdGenerator {
-    counter: std::cell::Cell<u32>,
+    counter: u32,
 }
 
 impl SimpleIdGenerator {
     fn new() -> Self {
-        SimpleIdGenerator {
-            counter: std::cell::Cell::new(0),
-        }
+        SimpleIdGenerator { counter: 0 }
     }
 }
 
 impl IdGenerator for SimpleIdGenerator {
     type Id = TestGameId;
 
-    fn generate_id(&self) -> Self::Id {
-        let current = self.counter.get();
-        self.counter.set(current + 1);
+    fn generate_id(&mut self) -> Self::Id {
+        let current = self.counter;
+        self.counter += 1;
         TestGameId(current)
     }
 }
 
 #[test]
 fn test_id_generator_produces_unique_ids() {
-    let generator = SimpleIdGenerator::new();
+    let mut generator = SimpleIdGenerator::new();
 
     let id1 = generator.generate_id();
     let id2 = generator.generate_id();
@@ -74,7 +72,7 @@ fn test_id_generator_produces_unique_ids() {
 
 #[test]
 fn test_id_generator_increments() {
-    let generator = SimpleIdGenerator::new();
+    let mut generator = SimpleIdGenerator::new();
 
     let id1 = generator.generate_id();
     let id2 = generator.generate_id();
