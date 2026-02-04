@@ -44,19 +44,6 @@ pub trait GameLogic {
         moves: HashMap<Self::PID, Self::Move>,
     ) -> Result<MoveResult<Self::PID>, GameError<Self::PID>>;
 
-    /// Returns the legal moves for a player in the current state.
-    ///
-    /// # Arguments
-    /// * `state` - The current game state.
-    /// * `player` - The player ID to get legal moves for.
-    ///
-    /// # Returns
-    /// A vector of legal moves for the player. Returns empty vector if player has no legal moves
-    /// or is not an active player.
-    fn legal_moves(&self, state: &Self::State, player: Self::PID) -> Vec<Self::Move>
-    where
-        Self::Move: Clone;
-
     /// Masks the game state for a specific player, returning a representation of the state that is visible to that player.
     ///
     /// # Arguments
@@ -92,4 +79,22 @@ pub trait Agent {
         &mut self,
         new_state: <Self::Game as GameLogic>::MaskedState,
     ) -> <Self::Game as GameLogic>::Move;
+}
+
+/// Extension trait for games that can enumerate legal moves from a player's perspective.
+/// Not all games need this -- it is an optional capability for agents that want to
+/// query available moves before deciding. The enumeration is based on MaskedState,
+/// not the full State, so it only reflects what the player can observe.
+pub trait LegalMoves: GameLogic {
+    /// Returns the legal moves for a player given their view of the game state.
+    ///
+    /// # Arguments
+    /// * `state` - The masked game state visible to the player.
+    /// * `player` - The player ID to get legal moves for.
+    ///
+    /// # Returns
+    /// A vector of legal moves for the player. Empty if no legal moves are available.
+    fn legal_moves(&self, state: &Self::MaskedState, player: Self::PID) -> Vec<Self::Move>
+    where
+        Self::Move: Clone;
 }
