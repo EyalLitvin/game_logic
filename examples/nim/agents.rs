@@ -46,11 +46,11 @@ impl Agent for NimRandomAgent {
 
     fn calculate_next_move(
         &mut self,
-        _new_state: <Self::Game as GameLogic>::MaskedState,
+        new_state: <Self::Game as GameLogic>::MaskedState,
     ) -> <Self::Game as GameLogic>::Move {
         let mut rng = rand::rng();
         NimMove {
-            amount: rng.random_range(1..=self.max_takes),
+            amount: rng.random_range(1..=self.max_takes.min(new_state.pile_size)),
         }
     }
 
