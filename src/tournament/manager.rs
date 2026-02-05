@@ -38,10 +38,10 @@ where
     GG::Id: Send,
     M: matchmaker::MatchMaker<PID = G::PID, GID = GG::Id> + Sync,
 {
-    let (tx, rx) = std::sync::mpsc::channel();
+    let (sender, receiver) = std::sync::mpsc::channel();
 
     for game_config in matchmaker.initial_games() {
-        tx.send(MatchMakerResult::GameConfig(
+        sender.send(MatchMakerResult::GameConfig(
             game_id_generator.generate_id(),
             game_config,
         ))
@@ -50,12 +50,12 @@ where
 
     crossbeam::thread::scope(|scope| {
         loop {
-            match rx.recv().unwrap() {
+            match receiver.recv().unwrap() {
                 MatchMakerResult::Result(tournament_result) => {
                     break tournament_result;
                 }
                 MatchMakerResult::GameConfig(game_id, game_config) => {
-                    let thread_tx = tx.clone();
+                    let thread_sender = sender.clone();
                     let mut agents = agent_factories
                         .iter()
                         .filter(|(pid, _)| game_config.contains(pid))
@@ -67,7 +67,7 @@ where
                         let game_result = simulate_game::<G, A>(&game, &mut agents, None).expect("Game should complete");
 
                         for match_result in matchmaker.digest_result(game_id, game_result) {
-                            thread_tx.send(match_result).unwrap();
+                            thread_sender.send(match_result).unwrap();
                         }
                     });
                 }
