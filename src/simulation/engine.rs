@@ -53,7 +53,7 @@ pub fn simulate_game<G, A>(
 ) -> Result<FinalScores<G::PID>, SimulationError<G::PID>>
 where
     G: GameLogic,
-    A: Agent<Game = G>,
+    A: Agent<G>,
     G::PID: fmt::Debug,
 {
     let (mut current_state, mut current_players) = game.init(agents.keys().copied().collect());
