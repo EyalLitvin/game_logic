@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use game_logic::core::{FinalScores, GameError, GameLogic, Id, MoveResult};
+use game_logic::core::{FinalScores, GameError, GameLogic, Id, LegalMoves, MoveResult};
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
 pub struct NimPlayerId(pub u32);
@@ -113,16 +113,18 @@ impl GameLogic for NimGameLogic {
         }
     }
 
-    fn legal_moves(&self, state: &Self::State, _player: Self::PID) -> Vec<Self::Move>
+    fn mask_state(&self, state: &Self::State, _player: NimPlayerId) -> Self::MaskedState {
+        state.clone()
+    }
+}
+
+impl LegalMoves for NimGameLogic {
+    fn legal_moves(&self, state: &Self::MaskedState, _player: Self::PID) -> Vec<Self::Move>
     where
         Self::Move: Clone,
     {
         (1..=self.max_takes.min(state.pile_size))
             .map(|amount| NimMove { amount })
             .collect()
-    }
-
-    fn mask_state(&self, state: &Self::State, _player: NimPlayerId) -> Self::MaskedState {
-        state.clone()
     }
 }

@@ -3,7 +3,7 @@
 mod common;
 
 use indexmap::IndexMap;
-use game_logic::{simulate_game, core::{GameError, GameLogic, MoveResult}};
+use game_logic::{simulate_game, core::{GameError, GameLogic, LegalMoves, MoveResult}};
 use common::nim::{NimGameLogic, NimMove, NimPerfectAgent, NimPlayerId};
 use std::collections::HashMap;
 
