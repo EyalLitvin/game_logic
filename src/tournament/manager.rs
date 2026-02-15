@@ -11,6 +11,8 @@ use super::matchmaker::{self, MatchMakerOutput};
 
 pub type TournamentResult<PID> = HashMap<PID, i32>;
 
+/// Factory trait for creating agents.
+/// For heterogeneous agent support, implement with `type Agent = Box<dyn Agent<Game = G> + Send>`.
 pub trait AgentFactory {
     type Agent: Agent;
     fn create_agent(&self) -> Self::Agent;
@@ -21,9 +23,7 @@ pub trait IdGenerator {
     fn generate_id(&mut self) -> Self::Id;
 }
 
-// TODO: needs a complete rehaul - cannot have a concrete AF type, as cannot have a concrete Agent Type.
-
-pub fn host_tournament<G, A, AF, GG, M>(
+pub fn host_tournament<G, AF, GG, M>(
     game: &G,
     agent_factories: HashMap<G::PID, AF>,
     matchmaker: &mut M,
@@ -33,8 +33,8 @@ pub fn host_tournament<G, A, AF, GG, M>(
 where
     G: GameLogic + Sync,
     G::PID: Send + std::fmt::Debug,
-    A: Agent<Game = G> + Send,
-    AF: AgentFactory<Agent = A>,
+    AF: AgentFactory,
+    AF::Agent: Agent<Game = G> + Send,
     GG: IdGenerator,
     GG::Id: Send,
     M: matchmaker::MatchMaker<PID = G::PID, GID = GG::Id>,
@@ -49,14 +49,14 @@ where
         let mut spawn_game = |players: &HashSet<G::PID>| {
             let game_id = game_id_generator.generate_id();
             let thread_sender = sender.clone();
-            let mut agents = agent_factories
+            let mut agents: IndexMap<G::PID, AF::Agent> = agent_factories
                 .iter()
                 .filter(|(pid, _)| players.contains(pid))
                 .map(|(pid, factory)| (pid.clone(), factory.create_agent()))
-                .collect::<IndexMap<_, _>>();
+                .collect();
 
             scope.spawn(move |_| {
-                let game_result = match simulate_game::<G, A>(game, &mut agents, max_turns) {
+                let game_result = match simulate_game(game, &mut agents, max_turns) {
                     Ok(scores) => scores,
                     Err(_) => FinalScores::new(),
                 };

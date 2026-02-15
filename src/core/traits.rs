@@ -62,23 +62,40 @@ pub trait Agent {
 
     /// Updates the agent's internal state based on the new game state.
     /// This is called with a new game state when it's not the agent's turn.
-    ///
-    /// # Arguments
-    /// * `new_state` - The new game state that the agent should observe.
     fn digest_state(&mut self, new_state: <Self::Game as GameLogic>::MaskedState);
 
     /// Calculates the next move for the agent based on the new game state.
     /// This is called when it's the agent's turn to make a move.
-    ///
-    /// # Arguments
-    /// * `new_state` - The current game state visible to the agent.
-    ///
-    /// # Returns
-    /// The move that the agent has decided to make.
     fn calculate_next_move(
         &mut self,
         new_state: <Self::Game as GameLogic>::MaskedState,
     ) -> <Self::Game as GameLogic>::Move;
+}
+
+/// Blanket impl so that Box<dyn Agent<Game = G>> can be used wherever Agent is expected.
+impl<G: GameLogic> Agent for Box<dyn Agent<Game = G>> {
+    type Game = G;
+
+    fn digest_state(&mut self, new_state: G::MaskedState) {
+        (**self).digest_state(new_state);
+    }
+
+    fn calculate_next_move(&mut self, new_state: G::MaskedState) -> G::Move {
+        (**self).calculate_next_move(new_state)
+    }
+}
+
+/// Blanket impl for Send variant.
+impl<G: GameLogic> Agent for Box<dyn Agent<Game = G> + Send> {
+    type Game = G;
+
+    fn digest_state(&mut self, new_state: G::MaskedState) {
+        (**self).digest_state(new_state);
+    }
+
+    fn calculate_next_move(&mut self, new_state: G::MaskedState) -> G::Move {
+        (**self).calculate_next_move(new_state)
+    }
 }
 
 /// Extension trait for games that can enumerate legal moves from a player's perspective.
