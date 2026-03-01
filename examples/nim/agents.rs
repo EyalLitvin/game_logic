@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use game_logic::core::{Agent, GameLogic};
+use game_logic::core::Agent;
 use game_logic::tournament::AgentFactory;
 
 use super::game::{NimGameLogic, NimMove, NimState};
@@ -18,9 +18,7 @@ impl NimPerfectAgent {
     }
 }
 
-impl Agent for NimPerfectAgent {
-    type Game = NimGameLogic;
-
+impl Agent<NimGameLogic> for NimPerfectAgent {
     fn calculate_next_move(&mut self, new_state: NimState) -> NimMove {
         match new_state.pile_size % self.mod_base {
             0 => NimMove { amount: 1 },
@@ -28,7 +26,7 @@ impl Agent for NimPerfectAgent {
         }
     }
 
-    fn digest_state(&mut self, _new_state: <Self::Game as GameLogic>::MaskedState) {}
+    fn digest_state(&mut self, _new_state: NimState) {}
 }
 
 pub struct NimRandomAgent {
@@ -41,20 +39,15 @@ impl NimRandomAgent {
     }
 }
 
-impl Agent for NimRandomAgent {
-    type Game = NimGameLogic;
-
-    fn calculate_next_move(
-        &mut self,
-        new_state: <Self::Game as GameLogic>::MaskedState,
-    ) -> <Self::Game as GameLogic>::Move {
+impl Agent<NimGameLogic> for NimRandomAgent {
+    fn calculate_next_move(&mut self, new_state: NimState) -> NimMove {
         let mut rng = rand::rng();
         NimMove {
             amount: rng.random_range(1..=self.max_takes.min(new_state.pile_size)),
         }
     }
 
-    fn digest_state(&mut self, _new_state: <Self::Game as GameLogic>::MaskedState) {}
+    fn digest_state(&mut self, _new_state: NimState) {}
 }
 
 pub struct PerfectFactory {
@@ -67,12 +60,11 @@ impl PerfectFactory {
     }
 }
 
-impl AgentFactory for PerfectFactory {
-    type Agent = NimPerfectAgent;
-    fn create_agent(&self) -> Self::Agent {
-        NimPerfectAgent {
+impl AgentFactory<NimGameLogic> for PerfectFactory {
+    fn create_agent(&self) -> Box<dyn Agent<NimGameLogic> + Send> {
+        Box::new(NimPerfectAgent {
             mod_base: self.mod_base,
-        }
+        })
     }
 }
 
@@ -86,11 +78,10 @@ impl RandomFactory {
     }
 }
 
-impl AgentFactory for RandomFactory {
-    type Agent = NimRandomAgent;
-    fn create_agent(&self) -> Self::Agent {
-        NimRandomAgent {
+impl AgentFactory<NimGameLogic> for RandomFactory {
+    fn create_agent(&self) -> Box<dyn Agent<NimGameLogic> + Send> {
+        Box::new(NimRandomAgent {
             max_takes: self.max_takes,
-        }
+        })
     }
 }

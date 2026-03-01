@@ -4,9 +4,9 @@ use indexmap::IndexMap;
 use std::io::{self, Write};
 
 use game_logic::simulate_game;
-use nim::game::{NimGameLogic, NimMove, NimPlayerId};
-use nim::agents::{NimPerfectAgent, NimRandomAgent};
 use game_logic::core::Agent;
+use nim::game::{NimGameLogic, NimPlayerId};
+use nim::agents::{NimPerfectAgent, NimRandomAgent};
 
 fn main() {
     println!("=== Nim Game Example ===\n");
@@ -32,10 +32,22 @@ fn main() {
     let mode = get_input("Enter choice (1-4)", 1);
 
     match mode {
-        1 => play_human_vs_ai(&game, NimPerfectAgent::new(&game)),
-        2 => play_human_vs_ai(&game, NimRandomAgent::new(max_takes)),
-        3 => simulate_ai_vs_ai(&game, NimPerfectAgent::new(&game), NimPerfectAgent::new(&game), "Perfect", "Perfect"),
-        4 => simulate_ai_vs_ai(&game, NimPerfectAgent::new(&game), NimRandomAgent::new(max_takes), "Perfect", "Random"),
+        1 => play_human_vs_ai(&game, Box::new(NimPerfectAgent::new(&game))),
+        2 => play_human_vs_ai(&game, Box::new(NimRandomAgent::new(max_takes))),
+        3 => simulate_ai_vs_ai(
+            &game,
+            Box::new(NimPerfectAgent::new(&game)),
+            Box::new(NimPerfectAgent::new(&game)),
+            "Perfect",
+            "Perfect",
+        ),
+        4 => simulate_ai_vs_ai(
+            &game,
+            Box::new(NimPerfectAgent::new(&game)),
+            Box::new(NimRandomAgent::new(max_takes)),
+            "Perfect",
+            "Random",
+        ),
         _ => println!("Invalid choice!"),
     }
 }
@@ -50,29 +62,23 @@ fn get_input(prompt: &str, default: u32) -> u32 {
     input.trim().parse().unwrap_or(default)
 }
 
-fn play_human_vs_ai<A: Agent<Game = NimGameLogic>>(_game: &NimGameLogic, _ai: A) {
+fn play_human_vs_ai(_game: &NimGameLogic, _ai: Box<dyn Agent<NimGameLogic>>) {
     println!("\nHuman vs AI mode not yet implemented!");
     println!("This would require interactive gameplay support.");
 }
 
-fn simulate_ai_vs_ai<A1, A2>(
+fn simulate_ai_vs_ai(
     game: &NimGameLogic,
-    _agent1: A1,
-    _agent2: A2,
+    agent1: Box<dyn Agent<NimGameLogic>>,
+    agent2: Box<dyn Agent<NimGameLogic>>,
     name1: &str,
     name2: &str,
-) where
-    A1: Agent<Game = NimGameLogic>,
-    A2: Agent<Game = NimGameLogic>,
-{
+) {
     let player1 = NimPlayerId(1);
     let player2 = NimPlayerId(2);
 
-    // For simplicity in the example, just use two perfect agents
-    let mut agents: IndexMap<NimPlayerId, NimPerfectAgent> = [
-        (player1, NimPerfectAgent::new(game)),
-        (player2, NimPerfectAgent::new(game)),
-    ].into();
+    let mut agents: IndexMap<NimPlayerId, Box<dyn Agent<NimGameLogic>>> =
+        [(player1, agent1), (player2, agent2)].into();
 
     println!("\nSimulating: {} vs {}", name1, name2);
     println!("Initial pile: {}, Max takes: {}\n", game.initial_pile_size, game.max_takes);
